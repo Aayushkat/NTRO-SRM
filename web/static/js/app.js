@@ -32,6 +32,9 @@
         },
         jobResult: null,
         uploadedFile: null,
+        userLocationMarker: null,
+        userLocationCircle: null,
+        isLocating: false,
     };
 
     // DOM Element References (initialized on start)
@@ -62,6 +65,7 @@
             srOpacitySlider: document.getElementById("sr-opacity-slider"),
             srOpacityVal: document.getElementById("sr-opacity-val"),
             btnZoomPatch: document.getElementById("btn-zoom-patch"),
+            btnLocateMe: document.getElementById("btn-locate-me"),
             dateFrom: document.getElementById("date-from"),
             dateTo: document.getElementById("date-to"),
             cloudCover: document.getElementById("cloud-cover"),
@@ -258,11 +262,11 @@
         setAoiFromBounds(bounds);
 
         if (elements.aoiBadge) {
-            elements.aoiBadge.textContent = name || "Preset Loaded";
+            elements.aoiBadge.textContent = name || "Selected";
             elements.aoiBadge.className = "badge badge-success";
         }
         if (elements.aoiDisplayStatus) {
-            elements.aoiDisplayStatus.textContent = `Location: ${name} • Ready to Upscale`;
+            elements.aoiDisplayStatus.textContent = `${name} selected`;
         }
 
         // Switch to Tab 1 if currently on another tab
@@ -288,6 +292,119 @@
                 selectQuickLocation(lat, lon, name);
             }
         });
+    }
+
+    // =========================================================================
+    // 2b. User Geolocation — center map + AOI on device location
+    // =========================================================================
+    function initUserLocation() {
+        if (!elements.btnLocateMe) return;
+        elements.btnLocateMe.addEventListener("click", () => {
+            if (!state.map || state.isLocating) return;
+
+            if (!("geolocation" in navigator)) {
+                if (elements.aoiDisplayStatus) {
+                    elements.aoiDisplayStatus.textContent = "Geolocation not supported in this browser";
+                }
+                return;
+            }
+
+            state.isLocating = true;
+            elements.btnLocateMe.disabled = true;
+            elements.btnLocateMe.classList.add("locating");
+            const originalLabel = elements.btnLocateMe.innerHTML;
+            elements.btnLocateMe.innerHTML = "Locating…";
+            if (elements.aoiDisplayStatus) {
+                elements.aoiDisplayStatus.textContent = "Locating… allow browser location access";
+            }
+
+            const resetButton = () => {
+                state.isLocating = false;
+                if (elements.btnLocateMe) {
+                    elements.btnLocateMe.disabled = false;
+                    elements.btnLocateMe.classList.remove("locating");
+                    elements.btnLocateMe.innerHTML = originalLabel;
+                }
+            };
+
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    resetButton();
+                    centerOnUserLocation(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy);
+                },
+                (err) => {
+                    resetButton();
+                    let msg = "Unable to get your location";
+                    if (err && err.code === 1) {
+                        msg = "Location permission denied — allow access in browser site settings";
+                    } else if (err && err.code === 2) {
+                        msg = "Location unavailable — check GPS/network connection";
+                    } else if (err && err.code === 3) {
+                        msg = "Location request timed out — try again";
+                    }
+                    if (elements.aoiDisplayStatus) {
+                        elements.aoiDisplayStatus.textContent = msg;
+                    }
+                },
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+            );
+        });
+    }
+
+    function centerOnUserLocation(lat, lon, accuracy) {
+        if (!state.map || isNaN(lat) || isNaN(lon)) return;
+        clearOverlays();
+
+        document.querySelectorAll(".preset-chip").forEach((el) => el.classList.remove("active"));
+
+        const deltaLat = (1.5 / 110.574) / 2;
+        const deltaLon = (1.5 / (111.32 * Math.cos((lat * Math.PI) / 180))) / 2;
+        const bounds = L.latLngBounds(
+            [lat - deltaLat, lon - deltaLon],
+            [lat + deltaLat, lon + deltaLon]
+        );
+
+        state.map.setView([lat, lon], 14, { animate: true });
+        setAoiFromBounds(bounds);
+
+        if (state.userLocationMarker) {
+            state.map.removeLayer(state.userLocationMarker);
+            state.userLocationMarker = null;
+        }
+        if (state.userLocationCircle) {
+            state.map.removeLayer(state.userLocationCircle);
+            state.userLocationCircle = null;
+        }
+
+        if (accuracy && isFinite(accuracy)) {
+            state.userLocationCircle = L.circle([lat, lon], {
+                radius: Math.max(accuracy, 10),
+                color: "#007aff",
+                weight: 1.5,
+                fillColor: "#007aff",
+                fillOpacity: 0.12,
+            }).addTo(state.map);
+        }
+        state.userLocationMarker = L.circleMarker([lat, lon], {
+            radius: 8,
+            color: "#ffffff",
+            weight: 2.5,
+            fillColor: "#007aff",
+            fillOpacity: 1,
+        }).addTo(state.map);
+
+        if (elements.aoiBadge) {
+            elements.aoiBadge.textContent = "My location";
+            elements.aoiBadge.className = "badge badge-success";
+        }
+        if (elements.aoiDisplayStatus) {
+            elements.aoiDisplayStatus.textContent = "Centered on your location";
+        }
+
+        const tabBtnSelect = document.getElementById("tab-btn-select");
+        if (tabBtnSelect && !tabBtnSelect.classList.contains("active")) {
+            tabBtnSelect.click();
+        }
     }
 
     // =========================================================================
@@ -482,18 +599,18 @@
         const wSr = wPx * 4;
         const hSr = hPx * 4;
 
-        elements.aoiBadge.textContent = "Patch Ready";
+        elements.aoiBadge.textContent = "Selected";
         elements.aoiBadge.className = "badge badge-success";
         elements.aoiCenter.textContent = `${centerLat.toFixed(4)}, ${centerLon.toFixed(4)}`;
         elements.aoiDims.textContent = `${widthKm.toFixed(2)} × ${heightKm.toFixed(2)} km (${areaKm2.toFixed(1)} km²)`;
         elements.aoiPixels.textContent = `${wPx} × ${hPx} px (~${totalPx.toLocaleString()} px)`;
         if (elements.aoiSrPixels) {
-            elements.aoiSrPixels.textContent = `${wSr} × ${hSr} px (4× Super-Resolved)`;
+            elements.aoiSrPixels.textContent = `${wSr} × ${hSr} px`;
         }
 
         const maxPx = 512 * 512;
         if (totalPx > maxPx) {
-            elements.aoiWarning.textContent = `AOI has ~${totalPx.toLocaleString()} px, exceeding 512×512 GPU tile limit. Please draw a smaller patch.`;
+            elements.aoiWarning.textContent = `This area contains about ${totalPx.toLocaleString()} pixels. Draw a smaller region.`;
             elements.aoiWarning.classList.remove("hidden");
             elements.btnRunSr.disabled = true;
         } else {
@@ -501,7 +618,7 @@
             elements.btnRunSr.disabled = false;
         }
 
-        elements.aoiDisplayStatus.textContent = `Patch: ${wPx}×${hPx} px (10m) → ${wSr}×${hSr} px (2.5m) • Ready to Upscale`;
+        elements.aoiDisplayStatus.textContent = `${wPx}×${hPx} px at 10 m → ${wSr}×${hSr} px at 2.5 m`;
     }
 
     // Clear AOI
@@ -515,7 +632,7 @@
                 state.currentAoi = null;
                 state.selectedScene = null;
                 document.querySelectorAll(".preset-chip").forEach((c) => c.classList.remove("active"));
-                elements.aoiBadge.textContent = "No Patch Selected";
+                elements.aoiBadge.textContent = "Not selected";
                 elements.aoiBadge.className = "badge badge-gray";
                 elements.aoiCenter.textContent = "--";
                 elements.aoiDims.textContent = "--";
@@ -524,7 +641,7 @@
                 elements.aoiWarning.classList.add("hidden");
                 elements.btnRunSr.disabled = true;
                 elements.selectedSceneCard.classList.add("hidden");
-                elements.aoiDisplayStatus.textContent = "Ready • Click 'Draw Box' or select a quick location to upscale";
+                elements.aoiDisplayStatus.textContent = "Draw an area or choose a location";
             });
         }
 
@@ -769,7 +886,7 @@
 
         elements.btnLoadDemo.addEventListener("click", async () => {
             elements.btnLoadDemo.disabled = true;
-            elements.btnLoadDemo.textContent = "Loading Demo...";
+            elements.btnLoadDemo.textContent = "Opening sample…";
 
             try {
                 const resp = await fetch("/api/demo/info");
@@ -801,7 +918,7 @@
                 elements.btnLoadDemo.disabled = false;
                 elements.btnLoadDemo.innerHTML = `
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-                    Load Sample Scene
+                    Open sample
                 `;
             }
         });
@@ -825,7 +942,7 @@
         clearOverlays();
 
         resetProgressSteps();
-        updateProgressUI(5, "Submitting super-resolution task to RTX 3050 GPU...");
+        updateProgressUI(5, "Preparing image…");
 
         const sceneId = isDemo ? null : (state.selectedScene ? state.selectedScene.id : "auto");
 
@@ -922,7 +1039,7 @@
         // Populate Result Details
         elements.resCrs.textContent = job.result.crs || "EPSG:32617";
         elements.resTime.textContent = `${job.result.processing_time_sec} s`;
-        elements.resDevice.textContent = `${job.result.device_used.toUpperCase()} (NVIDIA RTX 3050)`;
+        elements.resDevice.textContent = job.result.device_used.toUpperCase();
         if (elements.resModel) {
             elements.resModel.textContent = job.result.model || (state.selectedModel === "swin2sr" ? "SEN2SR-Swin2SR" : "SEN2SR-Lite");
         }
@@ -935,6 +1052,7 @@
         elements.btnDownloadCir.href = `/api/sr/jobs/${job.job_id}/download/cir`;
 
         elements.resultsCard.classList.remove("hidden");
+        elements.progressCard.classList.add("hidden");
         elements.viewModeGroup.style.display = "flex";
         elements.comparisonToggleGroup.style.display = "flex";
 
@@ -1194,9 +1312,9 @@
                 const explainer = document.getElementById("upscale-explainer-text");
                 if (explainer) {
                     if (isSwin) {
-                        explainer.innerHTML = `Selected <strong>SEN2SR-Swin2SR</strong> &bull; Higher-capacity 4&times; spatial upscaling (10m &rarr; 2.5m)`;
+                        explainer.innerHTML = `<strong>SEN2SR-Swin2SR</strong> &bull; 10 m &rarr; 2.5 m`;
                     } else {
-                        explainer.innerHTML = `Selected <strong>SEN2SR-Lite</strong> &bull; 4&times; spatial upscaling (10m &rarr; 2.5m)`;
+                        explainer.innerHTML = `<strong>SEN2SR-Lite</strong> &bull; 10 m &rarr; 2.5 m`;
                     }
                 }
                 updateLabelTexts();
@@ -1205,16 +1323,16 @@
     }
 
     function updateLabelTexts() {
-        const modeLabel = state.colorMode === "rgb" ? "Natural RGB" : "Infrared CIR";
+        const modeLabel = state.colorMode === "rgb" ? "Natural" : "Infrared";
         if (state.leftCompareMode === "bicubic") {
-            elements.labelLeftText.textContent = `Bicubic Baseline (2.5m • ${modeLabel})`;
+            elements.labelLeftText.textContent = `Bicubic · 2.5 m · ${modeLabel}`;
         } else {
-            elements.labelLeftText.textContent = `Original Sentinel-2 (10.0m Native • ${modeLabel})`;
+            elements.labelLeftText.textContent = `Original · 10 m · ${modeLabel}`;
         }
         const modelName = (state.jobResult && state.jobResult.model)
             ? state.jobResult.model
             : (state.selectedModel === "swin2sr" ? "SEN2SR-Swin2SR" : "SEN2SR-Lite");
-        elements.labelRightText.textContent = `${modelName} (2.50m Neural SR • ${modeLabel})`;
+        elements.labelRightText.textContent = `${modelName} · 2.5 m · ${modeLabel}`;
     }
 
     // =========================================================================
@@ -1224,6 +1342,7 @@
         elements = getElements();
         initMap();
         initQuickLocations();
+        initUserLocation();
         initTabs();
         initAoiControls();
         initUpload();
