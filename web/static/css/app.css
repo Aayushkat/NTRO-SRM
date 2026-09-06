@@ -1313,3 +1313,124 @@ body {
     color: var(--text-secondary);
     line-height: 1.35;
 }
+/* =========================================================
+   MOBILE / NARROW SIDEBAR ALIGNMENT FIX
+   ========================================================= */
+
+@media (max-width: 560px) {
+
+    /* Keep the sidebar inside the viewport */
+    .sidebar-panel {
+        width: 100%;
+        min-width: 0;
+        max-width: 100%;
+        overflow-x: hidden;
+    }
+
+    /* Every tab gets equal width */
+    .sidebar-tabs {
+        width: 100%;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 4px;
+        padding: 4px;
+    }
+
+    .tab-btn {
+        width: 100%;
+        min-width: 0;
+        padding: 0.55rem 0.25rem;
+        white-space: nowrap;
+    }
+
+    /* All cards use the same horizontal boundary */
+    .tab-content {
+        width: 100%;
+        padding: 14px;
+    }
+
+    .sidebar-card {
+        width: 100%;
+        min-width: 0;
+    }
+
+    /* Search Catalog */
+    #btn-search-scenes {
+        width: 100%;
+        min-height: 40px;
+    }
+
+    /* Model cards */
+    .model-option-group {
+        width: 100%;
+    }
+
+    .model-option-card {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .model-name-row {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .model-title {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    /* Main upscale button */
+    .upscale-action-card {
+        width: 100%;
+        padding: 0 14px 14px;
+        box-sizing: border-box;
+    }
+
+    #btn-run-sr {
+        width: 100%;
+        min-height: 46px;
+    }
+
+    /* Text below upscale button */
+    .upscale-explainer {
+        width: 100%;
+        text-align: center;
+        justify-content: center;
+        line-height: 1.35;
+    }
+
+    /* Progress card */
+    .progress-card {
+        width: 100%;
+        margin-left: 0;
+        margin-right: 0;
+    }
+
+    .progress-card .card-header {
+        gap: 8px;
+    }
+
+    .progress-timer {
+        margin-left: auto;
+    }
+
+    /* Results */
+    .results-card {
+        width: 100%;
+        margin-left: 0;
+        margin-right: 0;
+    }
+
+    .result-tabs {
+        width: 100%;
+    }
+
+    .result-tab {
+        min-width: 0;
+        padding-left: 4px;
+        padding-right: 4px;
+    }
+}
