@@ -1041,8 +1041,7 @@
         elements.resTime.textContent = `${job.result.processing_time_sec} s`;
         elements.resDevice.textContent = job.result.device_used.toUpperCase();
         if (elements.resModel) {
-            const rawModel = job.result.model || (state.selectedModel === "swin2sr" ? "SEN2SR-Swin2SR" : "Fine-Tuned");
-            elements.resModel.textContent = rawModel === "SEN2SR-Lite" ? "Fine-Tuned" : rawModel;
+            elements.resModel.textContent = job.result.model || (state.selectedModel === "swin2sr" ? "SEN2SR-Swin2SR" : "SEN2SR-Lite");
         }
         if (elements.resVram) {
             elements.resVram.textContent = job.result.peak_vram_mb ? `${job.result.peak_vram_mb} MB` : "N/A";
@@ -1315,7 +1314,7 @@
                     if (isSwin) {
                         explainer.innerHTML = `<strong>SEN2SR-Swin2SR</strong> &bull; 10 m &rarr; 2.5 m`;
                     } else {
-                        explainer.innerHTML = `<strong>Fine-Tuned</strong> &bull; 10 m &rarr; 2.5 m`;
+                        explainer.innerHTML = `<strong>SEN2SR-Lite</strong> &bull; 10 m &rarr; 2.5 m`;
                     }
                 }
                 updateLabelTexts();
@@ -1330,10 +1329,9 @@
         } else {
             elements.labelLeftText.textContent = `Original · 10 m · ${modeLabel}`;
         }
-        let modelName = (state.jobResult && state.jobResult.model)
+        const modelName = (state.jobResult && state.jobResult.model)
             ? state.jobResult.model
-            : (state.selectedModel === "swin2sr" ? "SEN2SR-Swin2SR" : "Fine-Tuned");
-        if (modelName === "SEN2SR-Lite") modelName = "Fine-Tuned";
+            : (state.selectedModel === "swin2sr" ? "SEN2SR-Swin2SR" : "SEN2SR-Lite");
         elements.labelRightText.textContent = `${modelName} · 2.5 m · ${modeLabel}`;
     }
 
