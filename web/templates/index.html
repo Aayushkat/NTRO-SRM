@@ -39,7 +39,7 @@
 
                 <div class="status-chip">
                     <span class="status-indicator indicator-active"></span>
-                    <span class="chip-val">{{ sys_info.model_variant }}</span>
+                    <span class="chip-val">{% if sys_info.model_variant == 'SEN2SR-Lite' %}Fine-Tuned{% else %}{{ sys_info.model_variant }}{% endif %}</span>
                 </div>
 
                 <div class="status-chip">
@@ -88,7 +88,7 @@
                         <span id="label-left-text">Original Sentinel-2 (10.0m Native)</span>
                     </div>
                     <div class="label-box label-right">
-                        <span id="label-right-text">SEN2SR-Lite (2.50m Neural SR)</span>
+                        <span id="label-right-text">Fine-Tuned (2.50m Neural SR)</span>
                     </div>
                 </div>
 
@@ -373,10 +373,10 @@
                     <div class="card-body">
                         <div class="model-option-group">
                             <label class="model-option-card active" for="model-radio-lite" id="label-model-lite">
-                                <input type="radio" name="sr-model" id="model-radio-lite" value="lite" checked>
+                                <input type="radio" name="sr-model" id="model-radio-lite" value="lite" data-model="SEN2SR-Lite" checked>
                                 <div class="model-option-content">
                                     <div class="model-name-row">
-                                        <span class="model-title">SEN2SR-Lite</span>
+                                        <span class="model-title">Fine-Tuned</span>
                                         <span class="model-meta">Fast</span>
                                     </div>
                                     <div class="model-desc">
@@ -407,7 +407,7 @@
                         <span>Process area</span>
                     </button>
                     <div class="upscale-explainer">
-                        <span id="upscale-explainer-text"><strong>SEN2SR-Lite</strong> &bull; 10 m &rarr; 2.5 m</span>
+                        <span id="upscale-explainer-text"><strong>Fine-Tuned</strong> &bull; 10 m &rarr; 2.5 m</span>
                     </div>
                 </div>
 
@@ -453,7 +453,7 @@
                         <div class="results-table">
                             <div class="result-row">
                                 <span class="r-label">Model</span>
-                                <span id="res-model" class="r-val highlight">SEN2SR-Lite</span>
+                                <span id="res-model" class="r-val highlight">Fine-Tuned</span>
                             </div>
                             <div class="result-row">
                                 <span class="r-label">Original resolution</span>
